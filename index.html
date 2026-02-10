@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Aquarium Desk Clock</title>
+  <style>
+    html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+    .wrap { position: fixed; inset: 0; }
+    video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      filter: saturate(1.1) contrast(1.05);
+    }
+    .overlay {
+      position: absolute; inset: 0;
+      display: grid;
+      place-items: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+      pointer-events: none;
+    }
+    .clock {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Arial, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: rgba(255,255,255,0.95);
+      text-shadow: 0 6px 24px rgba(0,0,0,0.55);
+      font-size: clamp(56px, 10vw, 140px);
+      line-height: 1.05;
+      text-align: center;
+    }
+    .date {
+      margin-top: 10px;
+      font-weight: 600;
+      font-size: clamp(16px, 3.2vw, 30px);
+      color: rgba(255,255,255,0.90);
+      text-shadow: 0 6px 24px rgba(0,0,0,0.55);
+    }
+    .hud {
+      position: absolute;
+      left: 12px; right: 12px; bottom: 12px;
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      pointer-events: auto;
+    }
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.55);
+      color: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+    }
+    button:active { transform: scale(0.99); }
+    .status {
+      position: absolute;
+      top: 10px; left: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.45);
+      color: rgba(255,255,255,0.90);
+      font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Put aquarium.mp4 in the same folder as this file, or change src to your video URL -->
+    <video id="bg" autoplay muted playsinline loop preload="auto">
+      <source src="aquarium.mp4" type="video/mp4" />
+    </video>
+
+    <div class="overlay">
+      <div>
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="date" id="date">Loading…</div>
+      </div>
+    </div>
+
+    <div class="status" id="status">Tap Start to enable always on</div>
+
+    <div class="hud">
+      <button id="startBtn">Start (keep screen on)</button>
+      <button id="fsBtn">Full screen</button>
+    </div>
+  </div>
+
+  <script>
+    const clockEl = document.getElementById("clock");
+    const dateEl = document.getElementById("date");
+    const statusEl = document.getElementById("status");
+    const videoEl = document.getElementById("bg");
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function tick() {
+      const d = new Date();
+      const h = pad(d.getHours());
+      const m = pad(d.getMinutes());
+      const s = pad(d.getSeconds());
+      clockEl.textContent = `${h}:${m}:${s}`;
+      dateEl.textContent = d.toLocaleDateString(undefined, {
+        weekday: "long", year: "numeric", month: "long", day: "numeric"
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      if (!("wakeLock" in navigator)) {
+        statusEl.textContent = "Wake lock not supported, set Auto Lock to Never";
+        return;
+      }
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        statusEl.textContent = "Always on enabled";
+        wakeLock.addEventListener("release", () => {
+          statusEl.textContent = "Wake lock released, tap Start again";
+        });
+      } catch (e) {
+        statusEl.textContent = "Wake lock blocked, set Auto Lock to Never";
+      }
+    }
+
+    // Re request wake lock when returning to the page
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && wakeLock) {
+        requestWakeLock();
+      }
+    });
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      try { await videoEl.play(); } catch (_) {}
+      await requestWakeLock();
+      statusEl.textContent = statusEl.textContent + " • Video running";
+    });
+
+    document.getElementById("fsBtn").addEventListener("click", async () => {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        try { await el.requestFullscreen(); } catch (_) {}
+      }
+    });
+  </script>
+</body>
+</html>
