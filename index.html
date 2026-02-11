@@ -78,28 +78,42 @@
   </div>
 
   <script>
-    function pad(n) {
-      return String(n).padStart(2, "0");
-    }
+ function pad(n) {
+    return String(n).padStart(2, "0");
+  }
 
-    function updateClock() {
-      const now = new Date();
-      const hours = pad(now.getHours());
-      const minutes = pad(now.getMinutes());
+  function updateClock() {
+    const now = new Date();
 
-      document.getElementById("clock").textContent =
-        `${hours}:${minutes}`;
+    let hours = now.getHours();
+    const minutes = pad(now.getMinutes());
+    const ampm = hours >= 12 ? "PM" : "AM";
 
-      document.getElementById("date").textContent =
-        now.toLocaleDateString(undefined, {
-          weekday: "long",
-          month: "long",
-          day: "numeric"
-        });
-    }
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 becomes 12
 
-    updateClock();
-    setInterval(updateClock, 1000);
+    document.getElementById("clock").textContent =
+      `${hours}:${minutes} ${ampm}`;
+
+    document.getElementById("date").textContent =
+      now.toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+      });
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // OLED burn-in prevention: subtle drift
+  let offset = 0;
+  setInterval(() => {
+    offset = (offset + 1) % 6; // 0–5 px
+    document.querySelector(".overlay").style.transform =
+      `translate(${offset}px, ${offset}px)`;
+  }, 60000); // move once per minute
   </script>
 </body>
 </html>
+
