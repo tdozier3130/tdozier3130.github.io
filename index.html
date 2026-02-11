@@ -56,6 +56,58 @@
       text-shadow: 0 6px 24px rgba(0,0,0,0.6);
       text-align: center;
     }
+    .flip-clock {
+  position: relative;
+  font-family: "Courier New", Courier, monospace;
+  font-size: clamp(64px, 11vw, 140px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.9);
+  text-shadow:
+    0 2px 0 rgba(0,0,0,0.8),
+    0 6px 20px rgba(0,0,0,0.6);
+}
+
+/* Simulated flip panels */
+.flip-clock::before,
+.flip-clock::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  pointer-events: none;
+}
+
+.flip-clock::before {
+  top: 0;
+  border-bottom: 2px solid rgba(0,0,0,0.6);
+}
+
+.flip-clock::after {
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.0),
+    rgba(0,0,0,0.35)
+  );
+}
+
+/* Time text */
+.flip-clock .time {
+  position: relative;
+  z-index: 1;
+}
+
+/* Small AM/PM in bottom-right */
+.flip-clock .ampm {
+  position: absolute;
+  bottom: 6px;
+  right: -1.8em;
+  font-size: 0.28em;
+  letter-spacing: 0.15em;
+  opacity: 0.85;
+}
   </style>
 </head>
 
@@ -72,13 +124,14 @@
 
   <div class="overlay">
     <div>
-      <div class="clock" id="clock">00:00</div>
+      <div class="flip-clock" id="clock">
+  <span class="time">12:00</span>
+  <span class="ampm" id="ampm">AM</span>
       <div class="date" id="date">Loading…</div>
     </div>
   </div>
-
-  <script>
- function pad(n) {
+<script>
+  function pad(n) {
     return String(n).padStart(2, "0");
   }
 
@@ -90,10 +143,12 @@
     const ampm = hours >= 12 ? "PM" : "AM";
 
     hours = hours % 12;
-    hours = hours ? hours : 12; // 0 becomes 12
+    hours = hours ? hours : 12;
 
-    document.getElementById("clock").textContent =
-      `${hours}:${minutes} ${ampm}`;
+    document.querySelector("#clock .time").textContent =
+      `${hours}:${minutes}`;
+
+    document.getElementById("ampm").textContent = ampm;
 
     document.getElementById("date").textContent =
       now.toLocaleDateString(undefined, {
@@ -106,14 +161,16 @@
   updateClock();
   setInterval(updateClock, 1000);
 
-  // OLED burn-in prevention: subtle drift
+  /* OLED burn-in prevention */
   let offset = 0;
   setInterval(() => {
-    offset = (offset + 1) % 6; // 0–5 px
+    offset = (offset + 1) % 6;
     document.querySelector(".overlay").style.transform =
       `translate(${offset}px, ${offset}px)`;
-  }, 60000); // move once per minute
-  </script>
+  }, 60000);
+</script>
+  
 </body>
 </html>
+
 
