@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 
-  <!-- iPhone web app mode -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Aquarium Clock">
@@ -12,63 +11,95 @@
 
   <title>Aquarium Clock</title>
 
- <script>
-  function pad(n) {
-    return String(n).padStart(2, "0");
-  }
-
-  let lastMinute = null;
-
-  function updateClock() {
-    const now = new Date();
-
-    let hours = now.getHours();
-    const minutesNum = now.getMinutes();
-    const minutes = pad(minutesNum);
-    const ampm = hours >= 12 ? "PM" : "AM";
-
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-
-    document.getElementById("time").textContent =
-      `${hours}:${minutes}`;
-
-    document.getElementById("ampm").textContent = ampm;
-
-    document.getElementById("date").textContent =
-      now.toLocaleDateString(undefined, {
-        weekday: "long",
-        month: "long",
-        day: "numeric"
-      });
-
-    // Trigger flip only when minute changes
-    if (lastMinute === null) {
-      lastMinute = minutesNum;
-      return;
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: black;
+      overflow: hidden;
     }
 
-    if (minutesNum !== lastMinute) {
-      lastMinute = minutesNum;
-
-      const clockEl = document.getElementById("clock");
-      clockEl.classList.remove("flip"); // reset
-      void clockEl.offsetWidth;         // force reflow
-      clockEl.classList.add("flip");    // run animation
+    video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
-  }
 
-  updateClock();
-  setInterval(updateClock, 1000);
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      will-change: transform;
+    }
 
-  // OLED burn-in prevention: subtle drift
-  let offset = 0;
-  setInterval(() => {
-    offset = (offset + 1) % 6; // 0–5 px
-    document.querySelector(".overlay").style.transform =
-      `translate(${offset}px, ${offset}px)`;
-  }, 60000);
-</script>
+    .flip-clock {
+      position: relative;
+      display: inline-block;
+      padding: 0;
+
+      font-family: "Courier New", Courier, monospace;
+      font-size: clamp(64px, 11vw, 140px);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      line-height: 1;
+    }
+
+    /* seam line */
+    .flip-clock::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 2px;
+      background: rgba(0,0,0,0.45);
+      pointer-events: none;
+    }
+
+    .flip-clock .time {
+      display: inline-block;
+    }
+
+    /* AM/PM small, tucked bottom-right */
+    .flip-clock .ampm {
+      position: absolute;
+      right: -0.05em;
+      bottom: -0.55em;
+      font-size: 0.22em;
+      letter-spacing: 0.18em;
+      opacity: 0.85;
+    }
+
+    .date {
+      margin-top: 12px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(18px, 3vw, 32px);
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 6px 24px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+
+    /* minute flip animation */
+    .flip-clock.flip .time {
+      animation: flipTick 520ms ease-in-out;
+      transform-origin: 50% 50%;
+    }
+
+    @keyframes flipTick {
+      0%   { transform: perspective(700px) rotateX(0deg); }
+      40%  { transform: perspective(700px) rotateX(-70deg); }
+      100% { transform: perspective(700px) rotateX(0deg); }
+    }
+  </style>
 </head>
 
 <body>
@@ -84,57 +115,64 @@
 
   <div class="overlay">
     <div>
-    <div class="flip-clock" id="clock">
-      <span class="time" id="time">12:00</span>
-      <span class="ampm" id="ampm">AM</span>
+      <div class="flip-clock" id="clock">
+        <span class="time" id="time">12:00</span>
+        <span class="ampm" id="ampm">AM</span>
+      </div>
+      <div class="date" id="date">Loading…</div>
     </div>
-
-    <div class="date" id="date">Loading…</div>
   </div>
-</div>
-<script>
-  function pad(n) {
-    return String(n).padStart(2, "0");
-  }
 
-  function updateClock() {
-    const now = new Date();
+  <script>
+    function pad(n) {
+      return String(n).padStart(2, "0");
+    }
 
-    let hours = now.getHours();
-    const minutes = pad(now.getMinutes());
-    const ampm = hours >= 12 ? "PM" : "AM";
+    let lastMinute = null;
 
-    hours = hours % 12;
-    hours = hours ? hours : 12;
+    function updateClock() {
+      const now = new Date();
 
-    document.querySelector("#clock .time").textContent =
-      `${hours}:${minutes}`;
+      let hours = now.getHours();
+      const minutesNum = now.getMinutes();
+      const minutes = pad(minutesNum);
+      const ampm = hours >= 12 ? "PM" : "AM";
 
-    document.getElementById("ampm").textContent = ampm;
+      hours = hours % 12;
+      hours = hours ? hours : 12;
 
-    document.getElementById("date").textContent =
-      now.toLocaleDateString(undefined, {
-        weekday: "long",
-        month: "long",
-        day: "numeric"
-      });
-  }
+      document.getElementById("time").textContent = `${hours}:${minutes}`;
+      document.getElementById("ampm").textContent = ampm;
 
-  updateClock();
-  setInterval(updateClock, 1000);
+      document.getElementById("date").textContent =
+        now.toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric"
+        });
 
-  /* OLED burn-in prevention */
-  let offset = 0;
-  setInterval(() => {
-    offset = (offset + 1) % 6;
-    document.querySelector(".overlay").style.transform =
-      `translate(${offset}px, ${offset}px)`;
-  }, 60000);
-</script>
-  
+      // flip only when minute changes
+      if (lastMinute === null) {
+        lastMinute = minutesNum;
+      } else if (minutesNum !== lastMinute) {
+        lastMinute = minutesNum;
+        const clockEl = document.getElementById("clock");
+        clockEl.classList.remove("flip");
+        void clockEl.offsetWidth;
+        clockEl.classList.add("flip");
+      }
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // OLED burn-in prevention: subtle drift (once per minute)
+    let offset = 0;
+    setInterval(() => {
+      offset = (offset + 1) % 6; // 0–5 px
+      document.querySelector(".overlay").style.transform =
+        `translate(${offset}px, ${offset}px)`;
+    }, 60000);
+  </script>
 </body>
 </html>
-
-
-
-
