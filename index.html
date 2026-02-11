@@ -12,89 +12,63 @@
 
   <title>Aquarium Clock</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: black;
-      overflow: hidden;
+ <script>
+  function pad(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  let lastMinute = null;
+
+  function updateClock() {
+    const now = new Date();
+
+    let hours = now.getHours();
+    const minutesNum = now.getMinutes();
+    const minutes = pad(minutesNum);
+    const ampm = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+
+    document.getElementById("time").textContent =
+      `${hours}:${minutes}`;
+
+    document.getElementById("ampm").textContent = ampm;
+
+    document.getElementById("date").textContent =
+      now.toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+      });
+
+    // Trigger flip only when minute changes
+    if (lastMinute === null) {
+      lastMinute = minutesNum;
+      return;
     }
 
-    video {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    if (minutesNum !== lastMinute) {
+      lastMinute = minutesNum;
+
+      const clockEl = document.getElementById("clock");
+      clockEl.classList.remove("flip"); // reset
+      void clockEl.offsetWidth;         // force reflow
+      clockEl.classList.add("flip");    // run animation
     }
+  }
 
-    .overlay {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      pointer-events: none;
-    }
+  updateClock();
+  setInterval(updateClock, 1000);
 
-   
-
-    .date {
-      margin-top: 12px;
-      font-size: clamp(18px, 3vw, 32px);
-      font-weight: 600;
-      color: rgba(255,255,255,0.9);
-      text-shadow: 0 6px 24px rgba(0,0,0,0.6);
-      text-align: center;
-    }
-  .flip-clock {
-  position: relative;
-  display: inline-block;
-  padding: 18px 26px;
-  border-radius: 18px;
-  background: rgba(0,0,0,0.38);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.55);
-  backdrop-filter: blur(6px);
-
-  font-family: "Courier New", Courier, monospace;
-  font-size: clamp(64px, 11vw, 140px);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(255,255,255,0.9);
-  text-shadow: 0 6px 20px rgba(0,0,0,0.6);
-  line-height: 1;
-}
-
-/* center seam like a flip clock */
-.flip-clock::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 2px;
-  background: rgba(0,0,0,0.55);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06);
-  pointer-events: none;
-}
-
-.flip-clock .time {
-  position: relative;
-  z-index: 1;
-  display: inline-block;
-}
-
-/* AM/PM small, tucked to bottom-right of the time */
-.flip-clock .ampm {
-  position: absolute;
-  right: 12px;
-  bottom: 10px;
-  font-size: 0.22em;
-  letter-spacing: 0.18em;
-  opacity: 0.85;
-}
-  </style>
+  // OLED burn-in prevention: subtle drift
+  let offset = 0;
+  setInterval(() => {
+    offset = (offset + 1) % 6; // 0–5 px
+    document.querySelector(".overlay").style.transform =
+      `translate(${offset}px, ${offset}px)`;
+  }, 60000);
+</script>
 </head>
 
 <body>
@@ -160,6 +134,7 @@
   
 </body>
 </html>
+
 
 
 
